@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Wave Studio Admin Dashboard - macOS Setup Script
+# Wave Studio Admin Dashboard - macOS Setup Script (FIXED)
 # Complete installation and setup for macOS
 # Usage: ./setup-macos.sh
 
@@ -19,7 +19,7 @@ echo -e "${BLUE}"
 echo "╔═══════════════════════════════════════════════════════════╗"
 echo "║   Wave Studio Admin Dashboard - macOS Setup Script       ║"
 echo "║   Production-Ready Full-Stack Application                ║"
-echo "╚═══════════════════════════════════════════════════════════╝"
+echo "╚═══════════════════════════════════════════════════════════╗"
 echo -e "${NC}"
 
 # Check if macOS
@@ -31,21 +31,46 @@ fi
 echo -e "${YELLOW}Starting setup for macOS...${NC}\n"
 
 # ============================================================================
-# 1. CHECK PREREQUISITES
+# 1. CHECK & INSTALL HOMEBREW
 # ============================================================================
-echo -e "${BLUE}[1/8] Checking prerequisites...${NC}"
+echo -e "${BLUE}[1/8] Setting up Homebrew...${NC}"
+
+# Define Homebrew paths for different Mac architectures
+if [[ $(uname -m) == "arm64" ]]; then
+    # Apple Silicon
+    HOMEBREW_PREFIX="/opt/homebrew"
+else
+    # Intel
+    HOMEBREW_PREFIX="/usr/local"
+fi
 
 # Check if Homebrew is installed
-if ! command -v brew &> /dev/null; then
-    echo -e "${YELLOW}→ Installing Homebrew...${NC}"
+if [ ! -f "$HOMEBREW_PREFIX/bin/brew" ]; then
+    echo -e "${YELLOW}→ Installing Homebrew (this may take a few minutes)...${NC}"
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    
+    # Add Homebrew to PATH if not already there
+    if [[ ! ":$PATH:" == *":$HOMEBREW_PREFIX/bin:"* ]]; then
+        echo -e "${YELLOW}→ Adding Homebrew to PATH...${NC}"
+        export PATH="$HOMEBREW_PREFIX/bin:$PATH"
+    fi
 else
     echo -e "${GREEN}✓ Homebrew already installed${NC}"
 fi
 
-# Update Homebrew
+# Ensure brew is available
+export PATH="$HOMEBREW_PREFIX/bin:$PATH"
+
+# Verify brew command works
+if ! command -v brew &> /dev/null; then
+    echo -e "${RED}✗ Homebrew installation failed${NC}"
+    echo -e "${YELLOW}Please run: eval \"\$(\$HOMEBREW_PREFIX/bin/brew shellenv)\"${NC}"
+    exit 1
+fi
+
 echo -e "${YELLOW}→ Updating Homebrew...${NC}"
 brew update
+echo -e "${GREEN}✓ Homebrew ready${NC}"
 
 # ============================================================================
 # 2. INSTALL NODE.JS AND NPM
@@ -69,13 +94,26 @@ echo -e "${GREEN}✓ npm version: $NPM_VERSION${NC}"
 echo -e "${BLUE}[3/8] Installing PostgreSQL...${NC}"
 
 if ! command -v psql &> /dev/null; then
-    echo -e "${YELLOW}→ Installing PostgreSQL...${NC}"
+    echo -e "${YELLOW}→ Installing PostgreSQL 15...${NC}"
     brew install postgresql@15
+    
+    echo -e "${YELLOW}→ Starting PostgreSQL...${NC}"
     brew services start postgresql@15
-    echo -e "${GREEN}✓ PostgreSQL started${NC}"
+    
+    # Wait for PostgreSQL to start
+    sleep 3
+    
+    echo -e "${GREEN}✓ PostgreSQL installed and started${NC}"
 else
     PSQL_VERSION=$(psql --version)
     echo -e "${GREEN}✓ PostgreSQL already installed: $PSQL_VERSION${NC}"
+    
+    # Make sure PostgreSQL is running
+    if ! pg_isready -h localhost -p 5432 > /dev/null 2>&1; then
+        echo -e "${YELLOW}→ Starting PostgreSQL...${NC}"
+        brew services start postgresql@15
+        sleep 2
+    fi
 fi
 
 # ============================================================================
@@ -83,13 +121,24 @@ fi
 # ============================================================================
 echo -e "${BLUE}[4/8] Setting up database...${NC}"
 
-# Wait for PostgreSQL to start
-sleep 2
+# Wait for PostgreSQL to be ready
+echo -e "${YELLOW}→ Waiting for PostgreSQL to be ready...${NC}"
+for i in {1..30}; do
+    if pg_isready -h localhost -p 5432 > /dev/null 2>&1; then
+        break
+    fi
+    if [ $i -eq 30 ]; then
+        echo -e "${RED}✗ PostgreSQL failed to start${NC}"
+        exit 1
+    fi
+    sleep 1
+done
 
-# Create database and user
-echo -e "${YELLOW}→ Creating database and user...${NC}"
-psql -U postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'wave_studio'" | grep -q 1 || psql -U postgres -c "CREATE DATABASE wave_studio;"
-echo -e "${GREEN}✓ Database created/verified${NC}"
+echo -e "${YELLOW}→ Creating database...${NC}"
+if ! psql -U postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'wave_studio'" 2>/dev/null | grep -q 1; then
+    psql -U postgres -c "CREATE DATABASE wave_studio;" 2>/dev/null || true
+fi
+echo -e "${GREEN}✓ Database ready${NC}"
 
 # ============================================================================
 # 5. BACKEND SETUP
@@ -132,7 +181,6 @@ LOG_LEVEL=debug
 EOF
 
 echo -e "${GREEN}✓ .env file created${NC}"
-
 cd ..
 
 # ============================================================================
@@ -157,7 +205,6 @@ VITE_API_BASE_URL=http://localhost:5000/api
 EOF
 
 echo -e "${GREEN}✓ .env.local file created${NC}"
-
 cd ..
 
 # ============================================================================
@@ -165,9 +212,10 @@ cd ..
 # ============================================================================
 echo -e "${BLUE}[7/8] Setting up Git hooks...${NC}"
 
-mkdir -p .git/hooks
-
-cat > .git/hooks/pre-commit << 'HOOK'
+if [ -d ".git" ]; then
+    mkdir -p .git/hooks
+    
+    cat > .git/hooks/pre-commit << 'HOOK'
 #!/bin/bash
 echo "Running pre-commit checks..."
 
@@ -178,9 +226,12 @@ fi
 
 echo "✓ Pre-commit checks passed"
 HOOK
-
-chmod +x .git/hooks/pre-commit
-echo -e "${GREEN}✓ Git hooks installed${NC}"
+    
+    chmod +x .git/hooks/pre-commit
+    echo -e "${GREEN}✓ Git hooks installed${NC}"
+else
+    echo -e "${YELLOW}⚠ Not a git repository, skipping git hooks${NC}"
+fi
 
 # ============================================================================
 # 8. CREATE START SCRIPTS
@@ -200,7 +251,7 @@ echo "Password: Admin123456"
 echo ""
 echo "Press Ctrl+C to stop the server"
 echo ""
-cd backend
+cd "$(dirname "$0")/backend"
 npm start
 EOF
 
@@ -218,7 +269,7 @@ echo "Password: Admin123456"
 echo ""
 echo "Press Ctrl+C to stop the dev server"
 echo ""
-cd frontend
+cd "$(dirname "$0")/frontend"
 npm run dev
 EOF
 
@@ -231,6 +282,13 @@ cat > start-all.sh << 'EOF'
 echo "🚀 Starting Wave Studio Admin Dashboard (Full Stack)..."
 echo ""
 
+# Detect Homebrew prefix
+if [[ $(uname -m) == "arm64" ]]; then
+    HOMEBREW_PREFIX="/opt/homebrew"
+else
+    HOMEBREW_PREFIX="/usr/local"
+fi
+
 # Check if PostgreSQL is running
 if ! pg_isready -h localhost -p 5432 > /dev/null 2>&1; then
     echo "📦 Starting PostgreSQL..."
@@ -239,7 +297,7 @@ if ! pg_isready -h localhost -p 5432 > /dev/null 2>&1; then
 fi
 
 echo "🔧 Starting Backend on port 5000..."
-cd backend
+cd "$(dirname "$0")/backend"
 npm start &
 BACKEND_PID=$!
 cd ..
@@ -247,7 +305,7 @@ cd ..
 sleep 3
 
 echo "📱 Starting Frontend on port 5173..."
-cd frontend
+cd "$(dirname "$0")/frontend"
 npm run dev &
 FRONTEND_PID=$!
 cd ..
