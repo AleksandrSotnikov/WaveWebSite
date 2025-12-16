@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 
 import { sequelize } from './models/index.js';
 import authRoutes from './routes/auth.js';
+import clientRoutes from './routes/clients.js';
 
 // Load environment variables
 dotenv.config();
@@ -26,7 +27,6 @@ app.get('/health', (req, res) => {
     status: 'OK',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    database: sequelize.authenticate() ? 'connected' : 'disconnected',
   });
 });
 
@@ -48,8 +48,8 @@ app.get('/api', (req, res) => {
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/clients', clientRoutes);
 // Additional routes will be added here
-// app.use('/api/clients', clientRoutes);
 // app.use('/api/trainers', trainerRoutes);
 // app.use('/api/subscriptions', subscriptionRoutes);
 // app.use('/api/sessions', sessionRoutes);
