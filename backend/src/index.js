@@ -7,6 +7,7 @@ import authRoutes from './routes/auth.js';
 import clientRoutes from './routes/clients.js';
 import trainerRoutes from './routes/trainers.js';
 import subscriptionRoutes from './routes/subscriptions.js';
+import sessionRoutes from './routes/sessions.js';
 
 // Load environment variables
 dotenv.config();
@@ -53,9 +54,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/trainers', trainerRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
-// Additional routes will be added here
-// app.use('/api/sessions', sessionRoutes);
-// app.use('/api/reports', reportRoutes);
+app.use('/api/sessions', sessionRoutes);
+// app.use('/api/reports', reportRoutes); // to be implemented
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -101,8 +101,8 @@ const startServer = async () => {
       console.log('  Auth: POST /api/auth/register, /api/auth/login, /api/auth/logout');
       console.log('  Clients: GET/POST /api/clients, GET/PUT/DELETE /api/clients/:id');
       console.log('  Trainers: GET/POST /api/trainers, GET/PUT/DELETE /api/trainers/:id, GET /api/trainers/:id/income');
-      console.log('  Subscriptions: GET/POST /api/subscriptions, GET/PUT/DELETE /api/subscriptions/:id');
-      console.log('  Subscriptions: GET /api/subscriptions/client/:client_id\n');
+      console.log('  Subscriptions: GET/POST /api/subscriptions, GET/PUT/DELETE /api/subscriptions/:id, GET /api/subscriptions/client/:client_id');
+      console.log('  Sessions: GET/POST /api/sessions, GET/DELETE /api/sessions/:id');
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);
