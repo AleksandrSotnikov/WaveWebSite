@@ -8,6 +8,7 @@ import clientRoutes from './routes/clients.js';
 import trainerRoutes from './routes/trainers.js';
 import subscriptionRoutes from './routes/subscriptions.js';
 import sessionRoutes from './routes/sessions.js';
+import reportRoutes from './routes/reports.js';
 
 // Load environment variables
 dotenv.config();
@@ -55,7 +56,7 @@ app.use('/api/clients', clientRoutes);
 app.use('/api/trainers', trainerRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/sessions', sessionRoutes);
-// app.use('/api/reports', reportRoutes); // to be implemented
+app.use('/api/reports', reportRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -103,6 +104,7 @@ const startServer = async () => {
       console.log('  Trainers: GET/POST /api/trainers, GET/PUT/DELETE /api/trainers/:id, GET /api/trainers/:id/income');
       console.log('  Subscriptions: GET/POST /api/subscriptions, GET/PUT/DELETE /api/subscriptions/:id, GET /api/subscriptions/client/:client_id');
       console.log('  Sessions: GET/POST /api/sessions, GET/DELETE /api/sessions/:id');
+      console.log('  Reports: GET /api/reports/trainer/:trainer_id | /client/:client_id | /date?date_from&date_to');
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);
