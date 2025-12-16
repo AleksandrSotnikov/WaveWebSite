@@ -1,0 +1,23 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy source code
+COPY src ./src
+COPY public ./public
+COPY vite.config.js .
+COPY index.html .
+COPY tailwind.config.js .
+COPY postcss.config.js .
+
+# Expose port
+EXPOSE 3000
+
+# Start application
+CMD ["npm", "run", "dev"]
