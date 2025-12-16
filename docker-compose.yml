@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: wave_postgres
+    environment:
+      POSTGRES_USER: wave_user
+      POSTGRES_PASSWORD: wave_password
+      POSTGRES_DB: wave_studio
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    networks:
+      - wave_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wave_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: wave_backend
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://wave_user:wave_password@postgres:5432/wave_studio
+      JWT_SECRET: your_jwt_secret_key_change_in_production
+      API_PORT: 5000
+      TIMEZONE: UTC+6
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend/src:/app/src
+    networks:
+      - wave_network
+    command: npm start
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: wave_frontend
+    environment:
+      VITE_API_URL: http://localhost:5000/api
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend/src:/app/src
+    networks:
+      - wave_network
+    command: npm run dev
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  wave_network:
+    driver: bridge
