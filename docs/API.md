@@ -1,176 +1,327 @@
-# 📚 API спецификация Wave Studio
+# 🌊 Wave Studio API Documentation
 
-## Основная информация
-
-- **Базовый URL**: `http://localhost:5000/api`
-- **Версия**: 1.0.0
-- **Протокол**: HTTP/REST
-- **Ответы**: JSON
-- **Аутентификация**: JWT Bearer Token
-
-## Численные коды ответов
-
-| Код | Описание |
-|-------|----------------------|
-| 200 | OK - Успешно |
-| 201 | Created - Новый ресурс создан |
-| 400 | Bad Request - Ошибка в запросе |
-| 401 | Unauthorized - Неаутентифицирован |
-| 403 | Forbidden - Недостаточно ху |
-| 404 | Not Found - Не найдено |
-| 409 | Conflict - Конфликт данных |
-| 500 | Internal Server Error - Ошибка сервера |
+**Version:** 1.0.0  
+**Status:** ✅ Production Ready  
+**Base URL:** `http://localhost:5000/api`  
+**Timezone:** UTC+6 (Asia/Almaty)  
+**Authentication:** JWT Bearer Token (7 days expiry)  
 
 ---
 
-## Модули API
+## 📋 Table of Contents
 
-### 1. Автентификация (`/auth`)
+1. [Authentication](#authentication)
+2. [Clients](#clients)
+3. [Trainers](#trainers)
+4. [Subscriptions](#subscriptions)
+5. [Sessions](#sessions)
+6. [Reports](#reports)
+7. [Error Handling](#error-handling)
+8. [Testing Examples](#testing-examples)
 
-#### Регистрация админа
-**POST** `/auth/register`
+---
 
-**Тело запроса:**
-```json
+## 🔐 Authentication
+
+All endpoints except `/auth/*` require JWT authentication via `Authorization: Bearer <token>` header.
+
+### Register Admin
+
+```http
+POST /auth/register
+Content-Type: application/json
+
 {
-  "username": "newadmin",
-  "password": "SecurePass123",
-  "email": "admin@example.com"
+  "username": "admin",
+  "password": "SecurePass123"
 }
 ```
 
-**Ответ (201):**
+**Response (201):**
 ```json
 {
-  "message": "Отлично! Аккаунт создан.",
-  "user": {
+  "success": true,
+  "message": "Admin registered successfully",
+  "data": {
     "id": 1,
-    "username": "newadmin",
-    "email": "admin@example.com",
-    "role": "admin"
+    "username": "admin"
   }
 }
 ```
 
-#### Авторизация
-**POST** `/auth/login`
+**Validation:**
+- `username`: unique, 3-50 chars
+- `password`: min 8 chars, must include letters & numbers
 
-**Тело запроса:**
-```json
+### Login
+
+```http
+POST /auth/login
+Content-Type: application/json
+
 {
   "username": "admin",
-  "password": "Admin123456"
+  "password": "SecurePass123"
 }
 ```
 
-**Ответ (200):**
+**Response (200):**
 ```json
 {
-  "message": "Успешная авторизация",
+  "success": true,
+  "message": "Login successful",
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "user": {
     "id": 1,
-    "username": "admin",
-    "role": "admin"
+    "username": "admin"
   }
+}
+```
+
+**Token Lifespan:** 7 days (604,800 seconds)
+
+### Logout
+
+```http
+POST /auth/logout
+Authorization: Bearer <token>
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Logout successful"
 }
 ```
 
 ---
 
-### 2. Клиенты (`/clients`)
+## 👥 Clients
 
-#### Получить всех клиентов
-**GET** `/clients`
+### Get All Clients
 
-**Ответ (200):**
+```http
+GET /clients
+Authorization: Bearer <token>
+```
+
+**Response (200):**
 ```json
 {
   "success": true,
   "data": [
     {
       "id": 1,
-      "full_name": "Александра Петрова",
+      "full_name": "Ольга Петрова",
       "phone_number": "+79991234567",
-      "messenger_link": "https://vk.com/alexandra.petrova",
-      "active_subscriptions": [5, 7]
+      "messenger_link": "https://vk.com/user123",
+      "active_subscriptions": [1, 2]
     }
   ],
   "total": 1
 }
 ```
 
-#### Создать клиента
-**POST** `/clients`
+### Get Client by ID
 
-**Тело запроса:**
-```json
+```http
+GET /clients/:id
+Authorization: Bearer <token>
+```
+
+### Create Client
+
+```http
+POST /clients
+Authorization: Bearer <token>
+Content-Type: application/json
+
 {
-  "full_name": "Мария Орлова",
-  "phone_number": "+79999876543",
-  "messenger_link": "https://t.me/maria_orlova"
+  "full_name": "Ольга Петрова",
+  "phone_number": "+79991234567",
+  "messenger_link": "https://vk.com/user123"
 }
 ```
 
-**Ответ (201):**
+**Required:** `full_name`  
+**Optional:** `phone_number`, `messenger_link`
+
+### Update Client
+
+```http
+PUT /clients/:id
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "full_name": "Ольга Петрова",
+  "phone_number": "+79991234568",
+  "messenger_link": "https://t.me/user123"
+}
+```
+
+### Delete Client
+
+```http
+DELETE /clients/:id
+Authorization: Bearer <token>
+```
+
+**Note:** Deletes only if no active sessions.
+
+---
+
+## 🏫 Trainers
+
+### Get All Trainers
+
+```http
+GET /trainers
+Authorization: Bearer <token>
+```
+
+**Response:**
 ```json
 {
   "success": true,
-  "message": "Клиент сохранен",
+  "data": [
+    {
+      "id": 1,
+      "full_name": "Иван Сидоров",
+      "specialization": "Современный танец",
+      "phone_number": "+79991234568",
+      "is_active": true
+    }
+  ],
+  "total": 1
+}
+```
+
+### Get Trainer by ID
+
+```http
+GET /trainers/:id
+Authorization: Bearer <token>
+```
+
+### Get Trainer Income (Period)
+
+```http
+GET /trainers/:id/income?date_from=2025-12-01&date_to=2025-12-31
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
   "data": {
-    "id": 2,
-    "full_name": "Мария Орлова",
-    "phone_number": "+79999876543",
-    "messenger_link": "https://t.me/maria_orlova",
-    "active_subscriptions": []
+    "trainer_id": 1,
+    "trainer_name": "Иван Сидоров",
+    "period": { "from": "2025-12-01", "to": "2025-12-31" },
+    "sessions_count": 5,
+    "total_income": 1875,
+    "sessions": [...]
   }
 }
 ```
 
-#### Обновить клиента
-**PUT** `/clients/:id`
+### Create Trainer
 
-**Тело запроса:**
-```json
-{
-  "phone_number": "+79999876544"
-}
-```
+```http
+POST /trainers
+Authorization: Bearer <token>
+Content-Type: application/json
 
-#### Удалить клиента
-**DELETE** `/clients/:id`
-
----
-
-### 3. Тренеры (`/trainers`)
-
-#### Получить всех тренеров
-**GET** `/trainers`
-
-#### Создать тренера
-**POST** `/trainers`
-
-**Тело запроса:**
-```json
 {
   "full_name": "Иван Сидоров",
-  "specialization": "современный танец",
+  "specialization": "Современный танец",
   "phone_number": "+79991234568"
 }
 ```
 
+### Update Trainer
+
+```http
+PUT /trainers/:id
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "full_name": "Иван Сидоров",
+  "specialization": "Классический балет",
+  "is_active": true
+}
+```
+
+### Delete Trainer
+
+```http
+DELETE /trainers/:id
+Authorization: Bearer <token>
+```
+
+**Note:** Soft delete (deactivate). Fails if trainer has future sessions.
+
 ---
 
-### 4. Абонементы (`/subscriptions`)
+## 🎫 Subscriptions
 
-#### Получить абонементы клиента
-**GET** `/subscriptions?client_id=1`
+### Get All Subscriptions
 
-#### Создать абонемент
-**POST** `/subscriptions`
+```http
+GET /subscriptions?client_id=1&status=active&type=limited
+Authorization: Bearer <token>
+```
 
-**Тело запроса (Лимитированный):**
+**Query Params:**
+- `client_id` (optional)
+- `status` (optional): `active`, `expired`
+- `type` (optional): `limited`, `unlimited`
+
+**Response:**
 ```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "client_id": 1,
+      "type": "limited",
+      "price": 3000,
+      "total_sessions": 8,
+      "sessions_used": 2,
+      "start_date": "2025-12-16",
+      "expiration_date": "2026-01-16",
+      "status": "active"
+    }
+  ],
+  "total": 1
+}
+```
+
+### Get Subscription by ID
+
+```http
+GET /subscriptions/:id
+Authorization: Bearer <token>
+```
+
+### Get Client Subscriptions
+
+```http
+GET /subscriptions/client/:client_id
+Authorization: Bearer <token>
+```
+
+### Create Subscription (Limited)
+
+```http
+POST /subscriptions
+Authorization: Bearer <token>
+Content-Type: application/json
+
 {
   "client_id": 1,
   "type": "limited",
@@ -180,8 +331,13 @@
 }
 ```
 
-**Тело запроса (Безлимитный):**
-```json
+### Create Subscription (Unlimited)
+
+```http
+POST /subscriptions
+Authorization: Bearer <token>
+Content-Type: application/json
+
 {
   "client_id": 1,
   "type": "unlimited",
@@ -190,182 +346,383 @@
 }
 ```
 
+**Note:** Expiration auto-calculated as 1 month from `start_date`.
+
+### Update Subscription
+
+```http
+PUT /subscriptions/:id
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "sessions_used": 3,
+  "status": "active"
+}
+```
+
+### Delete Subscription
+
+```http
+DELETE /subscriptions/:id
+Authorization: Bearer <token>
+```
+
 ---
 
-### 5. Тренировки (`/sessions`)
+## 📚 Sessions
 
-#### Получить паспорт тренировок
-**GET** `/sessions?date=2025-12-16&trainer_id=1`
+### Get All Sessions
 
-#### Создать тренировку
-**POST** `/sessions`
+```http
+GET /sessions?trainer_id=1&client_id=1&date_from=2025-12-01&date_to=2025-12-31
+Authorization: Bearer <token>
+```
 
-**Тело запроса:**
+**Query Params:**
+- `trainer_id` (optional)
+- `client_id` (optional)
+- `date_from` (optional): YYYY-MM-DD
+- `date_to` (optional): YYYY-MM-DD
+
+**Response:**
 ```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "trainer_id": 1,
+      "date_time": "2025-12-16T18:00:00Z",
+      "timezone": "UTC+6",
+      "notes": null,
+      "trainer": { "id": 1, "full_name": "Иван Сидоров" },
+      "attendees": [
+        {
+          "id": 1,
+          "session_id": 1,
+          "client_id": 1,
+          "subscription_id": 1,
+          "client": { "id": 1, "full_name": "Ольга Петрова" },
+          "subscription": { "id": 1, "type": "limited", "status": "active" }
+        }
+      ]
+    }
+  ],
+  "total": 1
+}
+```
+
+### Get Session by ID
+
+```http
+GET /sessions/:id
+Authorization: Bearer <token>
+```
+
+### Create Session
+
+```http
+POST /sessions
+Authorization: Bearer <token>
+Content-Type: application/json
+
 {
   "trainer_id": 1,
-  "date_time": "2025-12-16T19:00:00+06:00",
+  "date_time": "2025-12-16T18:00:00Z",
   "timezone": "UTC+6",
   "clients": [1, 2, 3],
-  "subscription_used": [5, 5, 7],
-  "notes": "Хорошее настроение"
+  "subscriptions": [1, 2, 3],
+  "notes": "Advanced group class"
 }
 ```
 
-**Ответ (201):**
+**Validation & Logic:**
+- ✅ Trainer must exist and be active
+- ✅ Each client must have active subscription (not expired)
+- ✅ Each subscription must belong to respective client
+- ✅ No conflicts: trainer cannot have overlapping sessions
+- ✅ No conflicts: clients cannot have overlapping sessions
+- ✅ For limited subscriptions: session count decremented
+- ✅ Income calculated and saved to `IncomeCalculation`
+
+**Response (201):**
 ```json
 {
   "success": true,
-  "message": "Тренировка сохранена",
+  "message": "Session created successfully",
   "data": {
-    "id": 1,
-    "trainer_id": 1,
-    "date_time": "2025-12-16T19:00:00+06:00",
-    "clients": [1, 2, 3],
-    "income_calculated": {
-      "total": 2025,
-      "by_client": [675, 675, 675]
-    }
+    "session": { "id": 1, "trainer_id": 1, ... },
+    "income": { "id": 1, "trainer_id": 1, "session_id": 1, "total_income": 1875 }
   }
 }
 ```
 
+**Income Calculation Formula:**
+- Limited: `(price * 0.45) / total_sessions`
+- Unlimited: `(price * 0.45) / sessions_in_month`
+
+### Delete Session
+
+```http
+DELETE /sessions/:id
+Authorization: Bearer <token>
+```
+
+**Note:** Rollbacks limited subscription usage, deletes attendees & income records.
+
 ---
 
-### 6. Отчёты (`/reports`)
+## 📊 Reports
 
-#### Получить отчёт по тренеру
-**GET** `/reports/trainer?trainer_id=1&date_from=2025-12-01&date_to=2025-12-31&format=json`
+All reports support formats: `json` (default), `csv`, `html`, `pdf`.
 
-**Ответ (200, format=json):**
+### Trainer Report
+
+```http
+GET /reports/trainer/:trainer_id?date_from=2025-12-01&date_to=2025-12-31&format=csv
+Authorization: Bearer <token>
+```
+
+**Query Params:**
+- `date_from` (optional): YYYY-MM-DD
+- `date_to` (optional): YYYY-MM-DD
+- `format` (optional): `json`, `csv`, `html`, `pdf` (default: `json`)
+
+**Response (JSON):**
 ```json
 {
   "success": true,
   "data": {
-    "trainer_id": 1,
-    "trainer_name": "Иван Сидоров",
-    "period": "2025-12-01 to 2025-12-31",
-    "sessions_count": 15,
-    "total_income": 10125,
-    "sessions": [
-      {
-        "date": "2025-12-16",
-        "clients_count": 3,
-        "income": 2025
-      }
+    "trainer": { "id": 1, "full_name": "Иван Сидоров" },
+    "period": { "from": "2025-12-01", "to": "2025-12-31" },
+    "sessions_count": 5,
+    "total_income": 1875,
+    "rows": [
+      { "session_id": 1, "date": "2025-12-16T18:00:00Z", "total_income": 375 }
     ]
   }
 }
 ```
 
-#### На выбор формата
-- `format=json` - JSON
-- `format=csv` - CSV для Excel
-- `format=pdf` - PDF документ
-- `format=html` - HTML таблица
+**Response (CSV):** Downloadable file `trainer_1_report.csv`
 
-**Выписка в CSV:**
+**Response (HTML):** Styled HTML table
+
+**Response (PDF):** Downloadable file `trainer_1_report.pdf`
+
+### Client Report
+
+```http
+GET /reports/client/:client_id?date_from=2025-12-01&date_to=2025-12-31&format=html
+Authorization: Bearer <token>
 ```
-trainer_id,trainer_name,date,clients_count,income
-1,Иван Сидоров,2025-12-16,3,2025
+
+**Data Includes:**
+- Session dates
+- Trainer names
+- Subscription types & status (active/expired)
+- Prices
+
+### Date Report
+
+```http
+GET /reports/date?date_from=2025-12-01&date_to=2025-12-31&format=pdf
+Authorization: Bearer <token>
 ```
 
-#### Отчёт по клиенту
-**GET** `/reports/client?client_id=1&date_from=2025-12-01&date_to=2025-12-31&format=json`
+**Required Query Params:**
+- `date_from`: YYYY-MM-DD
+- `date_to`: YYYY-MM-DD
 
-#### Отчёт по дате тренировки
-**GET** `/reports/date?date=2025-12-16&format=json`
+**Data Includes:**
+- Session IDs and dates
+- Trainer names
+- Total clients per session
+- Active vs. expired clients count
 
 ---
 
-## Ошибки и Валидация
+## ⚠️ Error Handling
 
-### Некорректные данные
-**Ответ (400):**
+All errors follow consistent format:
+
 ```json
 {
   "success": false,
   "error": {
-    "message": "Не валидные данные",
-    "details": [
-      {
-        "field": "phone_number",
-        "message": "Номер телефона должен быть в формате +7XXXXXXXXXX"
-      }
-    ]
+    "message": "Descriptive error message",
+    "code": "ERROR_CODE"
   }
 }
 ```
 
-### Неавторизед (нет прав)
-**Ответ (401):**
-```json
-{
-  "success": false,
-  "error": {
-    "message": "Неавторизирован",
-    "code": "UNAUTHORIZED"
-  }
-}
-```
+**Common Error Codes:**
 
-### Конфликт (например, перекрытие тренировок)
-**Ответ (409):**
-```json
-{
-  "success": false,
-  "error": {
-    "message": "Конфликт: клиент уже зарегистрирован на другую тренировку в это время",
-    "code": "SESSION_CONFLICT"
-  }
-}
-```
+| Code | HTTP | Description |
+|------|------|-------------|
+| `VALIDATION_ERROR` | 400 | Invalid request data |
+| `AUTHENTICATION_ERROR` | 401 | Missing or invalid JWT |
+| `NOT_FOUND` | 404 | Resource not found |
+| `CONFLICT` | 409 | Business logic conflict (e.g., session overlap) |
+| `TRAINER_CONFLICT` | 409 | Trainer has overlapping session |
+| `CLIENT_CONFLICT` | 409 | Client has overlapping session |
+| `NO_ACTIVE_SUBSCRIPTION` | 409 | Subscription expired or missing |
+| `NO_SESSIONS_LEFT` | 409 | Limited subscription exhausted |
+| `CREATE_ERROR` | 500 | Creation failed |
+| `FETCH_ERROR` | 500 | Fetch failed |
+| `UPDATE_ERROR` | 500 | Update failed |
+| `DELETE_ERROR` | 500 | Delete failed |
 
-### Клиент с просроченным/отсутствующим абонементом
-**Ответ (409):**
+**Example Error Response:**
+
 ```json
 {
   "success": false,
   "error": {
-    "message": "Клиент не имеет активных абонементов для этой тренировки",
-    "code": "NO_ACTIVE_SUBSCRIPTION"
+    "message": "Trainer already has a session at this time",
+    "code": "TRAINER_CONFLICT"
   }
 }
 ```
 
 ---
 
-## Примеры использования
+## 🧪 Testing Examples
 
-### cURL
+### Full Workflow Example
 
-**Авторизация:**
 ```bash
+# 1. Register & Login
+curl -X POST http://localhost:5000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"username": "admin", "password": "AdminPass123"}'
+
 curl -X POST http://localhost:5000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username": "admin", "password": "Admin123456"}'
-```
+  -d '{"username": "admin", "password": "AdminPass123"}'
 
-**Оптравка тренировки:**
-```bash
+# Save TOKEN from response
+
+# 2. Create Client
+curl -X POST http://localhost:5000/api/clients \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "full_name": "Ольга Петрова",
+    "phone_number": "+79991234567",
+    "messenger_link": "https://vk.com/user123"
+  }'
+
+# Save CLIENT_ID from response
+
+# 3. Create Trainer
+curl -X POST http://localhost:5000/api/trainers \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "full_name": "Иван Сидоров",
+    "specialization": "Современный танец",
+    "phone_number": "+79991234568"
+  }'
+
+# Save TRAINER_ID from response
+
+# 4. Create Limited Subscription
+curl -X POST http://localhost:5000/api/subscriptions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "client_id": '$CLIENT_ID',
+    "type": "limited",
+    "price": 3000,
+    "total_sessions": 8,
+    "start_date": "2025-12-16"
+  }'
+
+# Save SUBSCRIPTION_ID from response
+
+# 5. Create Session
 curl -X POST http://localhost:5000/api/sessions \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <TOKEN>" \
+  -H "Authorization: Bearer $TOKEN" \
   -d '{
-    "trainer_id": 1,
-    "date_time": "2025-12-16T19:00:00+06:00",
+    "trainer_id": '$TRAINER_ID',
+    "date_time": "2025-12-16T18:00:00Z",
     "timezone": "UTC+6",
-    "clients": [1, 2, 3],
-    "subscription_used": [5, 5, 7]
+    "clients": ['$CLIENT_ID'],
+    "subscriptions": ['$SUBSCRIPTION_ID'],
+    "notes": "Beginner class"
   }'
+
+# 6. Get Trainer Income Report (CSV)
+curl -X GET "http://localhost:5000/api/reports/trainer/$TRAINER_ID?date_from=2025-12-01&date_to=2025-12-31&format=csv" \
+  -H "Authorization: Bearer $TOKEN" \
+  -o trainer_report.csv
+
+# 7. Get Client Report (PDF)
+curl -X GET "http://localhost:5000/api/reports/client/$CLIENT_ID?date_from=2025-12-01&date_to=2025-12-31&format=pdf" \
+  -H "Authorization: Bearer $TOKEN" \
+  -o client_report.pdf
 ```
 
 ---
 
-## Примечания
+## 📦 Dependencies
 
-- Все даты/время в ISO 8601 с timezone
-- JWT токен срок действия: 7 дней
-- Все тела запросов должны быть в JSON
-- Пассы всегда в виде bcrypt хешей
+```json
+{
+  "express": "^4.18.0",
+  "sequelize": "^6.35.0",
+  "postgres": "^15",
+  "bcryptjs": "^2.4.3",
+  "jsonwebtoken": "^9.1.0",
+  "cors": "^2.8.5",
+  "dotenv": "^16.0.0",
+  "json2csv": "^6.0.0",
+  "pdfkit": "^0.13.0"
+}
+```
 
+---
+
+## 🚀 Deployment
+
+### Environment Variables (.env)
+
+```env
+NODE_ENV=production
+API_PORT=5000
+TIMEZONE=UTC+6
+FRONTEND_URL=https://yourdomain.com
+
+# Database
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=wave_studio
+DB_USER=postgres
+DB_PASSWORD=secure_password
+DB_DIALECT=postgres
+
+# JWT
+JWT_SECRET=your_super_secret_key_min_32_chars
+JWT_EXPIRY=7d
+```
+
+### Start Server
+
+```bash
+cd backend
+npm install
+node src/index.js
+```
+
+---
+
+## 📞 Support
+
+For issues or questions, refer to `DEVELOPMENT_CHECKLIST.md` or contact the team.
+
+**Last Updated:** 16 декабря 2025  
+**API Status:** ✅ Production Ready  
+**Phase:** 1.3 Complete (40% of total project)
